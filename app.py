@@ -1,7 +1,6 @@
 import pandas as pd
 import dash
-# Add clientside_callback to imports
-from dash import dcc, html, clientside_callback
+from dash import dcc, html
 from dash.dependencies import Input, Output
 from dash_echarts import DashECharts
 import dash_table
@@ -35,121 +34,166 @@ def create_date_marks(dates, num_marks=4):
 date_marks = create_date_marks(missiles_daily['Date'], num_marks=4)
 
 app.layout = html.Div([
-    # Store the data in the frontend using dcc.Store
-    dcc.Store(id='missiles-daily-store',
-              data=missiles_daily.to_dict('records')),
-    dcc.Store(id='dat-expanded-store',
-              data=dat_expanded_preprocessed.to_dict('records')),
 
     html.Div([
-        DashECharts(
-            option={},
-            id='missile-plot',
-            style={'width': '100%', 'height': '500px'}
-        ),
-    ], style={'border': '1px solid #ccc', 'padding': '10px', 'marginBottom': '20px'}),
 
-    html.Div([
-        dcc.RangeSlider(
-            id='date-range-slider',
-            min=int(missiles_daily['Date'].min().timestamp() * 1000),
-            max=int(missiles_daily['Date'].max().timestamp() * 1000),
-            value=[
-                int(missiles_daily['Date'].min().timestamp() * 1000),
-                int(missiles_daily['Date'].max().timestamp() * 1000)
-            ],
-            marks=date_marks,
-            step=None
-        )
-    ], style={'marginBottom': '20px'}),
+        html.Div([
+            DashECharts(
+                option={},
+                id='missile-plot',
+                style={'width': '100%', 'height': '500px'}
+            ),
+        ], style={'border': '1px solid #ccc', 'padding': '10px', 'marginBottom': '20px'}),
 
-    # Add the table here
-    html.Div(id='table-container', style={'display': 'none'}),
+        html.Div([
+            dcc.RangeSlider(
+                id='date-range-slider',
+                min=int(missiles_daily['Date'].min().timestamp() * 1000),
+                max=int(missiles_daily['Date'].max().timestamp() * 1000),
+                value=[
+                    int(missiles_daily['Date'].min().timestamp() * 1000),
+                    int(missiles_daily['Date'].max().timestamp() * 1000)
+                ],
+                marks=date_marks,
+                step=None,
+                tooltip={'always_visible': False,
+                         'placement': 'bottom'}  # Hide tooltips
+            ),
+        ], style={'marginBottom': '20px'}),
+
+        html.H2("Model Details", style={'fontFamily': 'Optima, sans-serif'}),
+
+        html.Div(id='table-container',
+                 style={'display': 'none', 'border': '1px solid #ccc', 'padding': '10px'}),
+    ], style={'maxWidth': '1200px', 'margin': '0 auto'})  # Ensure layout width is constrained
 ])
 
-# Clientside callback for updating the graph
-clientside_callback(
-    """
-    function(date_range, missiles_daily) {
-        const startDate = new Date(date_range[0]);
-        const endDate = new Date(date_range[1]);
+# Function to create the chart options for ECharts
 
-        // Check if data exists
-        if (!missiles_daily || missiles_daily.length === 0) {
-            return {};  // Return empty chart options if no data
-        }
 
-        const filteredData = missiles_daily.filter(row => {
-            const date = new Date(row['Date']);
-            return date >= startDate && date <= endDate;
-        });
-
-        const option = {
-            title: {
-                text: 'Daily Tally of Russian Missile Attacks',
-                left: 'center',
-                textStyle: { fontFamily: 'Optima, sans-serif' }
+def create_echarts_option(filtered_df):
+    option = {
+        'title': {
+            'text': 'Daily Tally of Russian Missile Attacks',
+            'left': 'center',
+            'textStyle': {'fontFamily': 'Optima, sans-serif'}
+        },
+        'tooltip': {'trigger': 'axis'},
+        'legend': {
+            'data': ['Launched', 'Destroyed'],
+            'bottom': 0,
+            'textStyle': {'fontFamily': 'Optima, sans-serif'}
+        },
+        'xAxis': {
+            'type': 'time',
+            'name': 'Date',
+            'nameTextStyle': {'fontFamily': 'Optima, sans-serif'},
+            'axisLabel': {
+                'formatter': '{yyyy}-{MM}-{dd}',
+                'fontFamily': 'Optima, sans-serif'
             },
-            tooltip: { trigger: 'axis' },
-            legend: { data: ['Launched', 'Destroyed'], bottom: 0 },
-            xAxis: { type: 'time', name: 'Date' },
-            yAxis: { type: 'value', name: 'Count' },
-            series: [
-                {
-                    name: 'Launched',
-                    type: 'bar',
-                    data: filteredData.map(row => [new Date(row['Date']).getTime(), row['total_launched']])
-                },
-                {
-                    name: 'Destroyed',
-                    type: 'bar',
-                    data: filteredData.map(row => [new Date(row['Date']).getTime(), row['total_destroyed']])
-                }
-            ]
-        };
-
-        return option;
+            'axisTick': {'alignWithLabel': True},
+            'splitLine': {'show': False},
+            'minorTick': {'show': False},
+            'minorSplitLine': {'show': False}
+        },
+        'yAxis': {
+            'type': 'value',
+            'name': 'Count',
+            'nameTextStyle': {'fontFamily': 'Optima, sans-serif'},
+            'axisLabel': {'fontFamily': 'Optima, sans-serif'}
+        },
+        'dataZoom': [
+            {
+                'type': 'slider',
+                'show': True,
+                'xAxisIndex': 0,
+                'orient': 'horizontal',
+                'height': 20
+            }
+        ],
+        'series': [
+            {
+                'name': 'Launched',
+                'type': 'bar',
+                'data': filtered_df.apply(
+                    lambda x: [int(x['Date'].timestamp() * 1000), x['total_launched']], axis=1).tolist(),
+                'itemStyle': {'color': '#0fb7ca'},
+                'showSymbol': False,
+                'connectNulls': False
+            },
+            {
+                'name': 'Destroyed',
+                'type': 'bar',
+                'data': filtered_df.apply(
+                    lambda x: [int(x['Date'].timestamp() * 1000), x['total_destroyed']], axis=1).tolist(),
+                'itemStyle': {'color': '#2b0b83', 'opacity': 0.7},
+                'showSymbol': False,
+                'connectNulls': False
+            }
+        ]
     }
-    """,
-    Output('missile-plot', 'option'),
-    Input('date-range-slider', 'value'),
-    Input('missiles-daily-store', 'data')
-)
+    return option
 
-# New Python callback for the table
+# Python callback for updating the graph
 
 
 @app.callback(
-    [Output('table-container', 'children'),
-     Output('table-container', 'style')],
-    [Input('date-range-slider', 'value'), Input('dat-expanded-store', 'data')]
+    Output('missile-plot', 'option'),
+    Input('date-range-slider', 'value')
 )
-def update_table(date_range, dat_expanded_preprocessed):
+def update_graph(date_range):
     start_date = pd.to_datetime(date_range[0], unit='ms')
     end_date = pd.to_datetime(date_range[1], unit='ms')
 
-    # Filter the data
-    filtered_data = [row for row in dat_expanded_preprocessed if start_date <=
-                     pd.to_datetime(row['Date']) <= end_date]
+    filtered_df = missiles_daily[
+        (missiles_daily['Date'] >= start_date) &
+        (missiles_daily['Date'] <= end_date)
+    ]
 
-    # If no data, hide the table
-    if len(filtered_data) == 0:
+    option = create_echarts_option(filtered_df)
+    return option
+
+# Python callback for updating the table
+
+
+@app.callback(
+    Output('table-container', 'children'),
+    Output('table-container', 'style'),
+    Input('date-range-slider', 'value')
+)
+def update_table(date_range):
+    start_date = pd.to_datetime(date_range[0], unit='ms')
+    end_date = pd.to_datetime(date_range[1], unit='ms')
+
+    filtered_data = dat_expanded_preprocessed[
+        (dat_expanded_preprocessed['Date'] >= start_date) &
+        (dat_expanded_preprocessed['Date'] <= end_date)
+    ]
+
+    if filtered_data.empty:
         return html.Div("No data available for the selected date range."), {'display': 'none'}
+    else:
+        filtered_data['Date'] = filtered_data['Date'].dt.strftime('%Y-%m-%d')
 
-    # If data is available, show the table
-    columns = [{'name': i, 'id': i} for i in filtered_data[0].keys()]
-    table = dash_table.DataTable(
-        data=filtered_data,
-        columns=columns,
-        page_size=10,
-        style_table={'overflowX': 'auto'},
-        style_cell={'textAlign': 'left', 'padding': '5px',
-                    'fontFamily': 'Optima, sans-serif'},
-        style_header={'backgroundColor': '#4c3d75',
-                      'fontWeight': 'bold', 'color': 'white'}
-    )
+        table = dash_table.DataTable(
+            data=filtered_data.to_dict('records'),
+            columns=[{'name': i, 'id': i} for i in filtered_data.columns],
+            page_size=10,
+            filter_action='native',
+            sort_action='native',
+            filter_options={'placeholder_text': 'Search'},
+            style_table={'overflowX': 'auto',
+                         'border': '1px solid #ccc', 'borderRadius': '5px'},
+            style_cell={'textAlign': 'left', 'padding': '5px',
+                        'backgroundColor': '#f9f9f9', 'font-family': 'Optima, sans-serif'},
+            style_header={'backgroundColor': '#4c3d75', 'fontWeight': 'bold',
+                          'color': 'white', 'font-family': 'Optima, sans-serif'},
+            style_data={'whiteSpace': 'normal', 'height': 'auto',
+                        'font-family': 'Optima, sans-serif'}
+        )
 
-    return table, {'display': 'block'}
+        return table, {'display': 'block', 'border': '1px solid #ccc', 'padding': '10px'}
 
 
 if __name__ == '__main__':
