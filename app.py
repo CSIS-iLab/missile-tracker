@@ -7,7 +7,7 @@ import dash_table
 import datetime
 
 app = dash.Dash(__name__)
-
+server = app.server
 
 missiles_daily = pd.read_csv('missiles_daily.csv', parse_dates=['Date'])
 dat_expanded_preprocessed = pd.read_csv(
