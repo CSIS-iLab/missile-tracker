@@ -6,8 +6,7 @@ from dash_echarts import DashECharts
 import dash_table
 import datetime
 
-app = dash.Dash(__name__, external_scripts=[
-                "https://unpkg.com/dash-core-components@1.17.1/dash_core_components/dash_core_components.js"])
+app = dash.Dash(__name__)
 
 # Load the data into Python
 missiles_daily = pd.read_csv('missiles_daily.csv', parse_dates=['Date'])
