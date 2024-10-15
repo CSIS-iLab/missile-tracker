@@ -10,11 +10,13 @@ app = dash.Dash(__name__)
 
 
 missiles_daily = pd.read_csv('missiles_daily.csv', parse_dates=['Date'])
-dat_expanded_preprocessed = pd.read_csv('dat_expanded_preprocessed.csv', parse_dates=['Date'])
+dat_expanded_preprocessed = pd.read_csv(
+    'dat_expanded_preprocessed.csv', parse_dates=['Date'])
 
 
 missiles_daily['Date'] = pd.to_datetime(missiles_daily['Date'])
-dat_expanded_preprocessed['Date'] = pd.to_datetime(dat_expanded_preprocessed['Date'])
+dat_expanded_preprocessed['Date'] = pd.to_datetime(
+    dat_expanded_preprocessed['Date'])
 
 
 def create_date_marks(dates, num_marks=4):
@@ -27,6 +29,7 @@ def create_date_marks(dates, num_marks=4):
     }
     return date_marks
 
+
 date_marks = create_date_marks(missiles_daily['Date'], num_marks=4)
 
 app.layout = html.Div([
@@ -35,13 +38,13 @@ app.layout = html.Div([
 
         html.Div([
             DashECharts(
-                option={},  
+                option={},
                 id='missile-plot',
                 style={'width': '100%', 'height': '500px'}
             ),
-        ], style={'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px'}),
+        ], style={'border': '1px solid #ccc', 'padding': '10px', 'marginBottom': '20px'}),
 
-        
+
         html.Div([
             dcc.RangeSlider(
                 id='date-range-slider',
@@ -53,17 +56,20 @@ app.layout = html.Div([
                 ],
                 marks=date_marks,
                 step=None,
-                tooltip={'always_visible': False, 'placement': 'bottom'}  # Hide tooltips
+                tooltip={'always_visible': False,
+                         'placement': 'bottom'}  # Hide tooltips
             ),
-        ], style={'margin-bottom': '20px'}),
+        ], style={'marginBottom': '20px'}),
 
 
-        html.H2("Model Details", style={'font-family': 'Optima, sans-serif'}),
+        html.H2("Model Details", style={'fontFamily': 'Optima, sans-serif'}),
 
 
-        html.Div(id='table-container', style={'display': 'none', 'border': '1px solid #ccc', 'padding': '10px'}),
-    ], style={'max-width': '1200px', 'margin': '0 auto'}) 
+        html.Div(id='table-container',
+                 style={'display': 'none', 'border': '1px solid #ccc', 'padding': '10px'}),
+    ], style={'maxWidth': '1200px', 'margin': '0 auto'})
 ])
+
 
 def create_echarts_option(filtered_df):
     option = {
@@ -98,7 +104,7 @@ def create_echarts_option(filtered_df):
             'splitLine': {
                 'show': False
             },
-     
+
             'minorTick': {
                 'show': False
             },
@@ -116,7 +122,7 @@ def create_echarts_option(filtered_df):
                 'fontFamily': 'Optima, sans-serif'
             }
         },
-      
+
         'dataZoom': [
             {
                 'type': 'slider',
@@ -133,8 +139,8 @@ def create_echarts_option(filtered_df):
                 'data': filtered_df.apply(
                     lambda x: [int(x['Date'].timestamp() * 1000), x['total_launched']], axis=1).tolist(),
                 'itemStyle': {'color': '#0fb7ca'},
-                'showSymbol': False, 
-                'connectNulls': False 
+                'showSymbol': False,
+                'connectNulls': False
             },
             {
                 'name': 'Destroyed',
@@ -142,32 +148,34 @@ def create_echarts_option(filtered_df):
                 'data': filtered_df.apply(
                     lambda x: [int(x['Date'].timestamp() * 1000), x['total_destroyed']], axis=1).tolist(),
                 'itemStyle': {'color': '#2b0b83', 'opacity': 0.7},
-                'showSymbol': False,  
-                'connectNulls': False 
+                'showSymbol': False,
+                'connectNulls': False
             }
         ],
-        
+
         'markLine': {'data': []},
         'markPoint': {'data': []}
     }
     return option
+
 
 @app.callback(
     Output('missile-plot', 'option'),
     Input('date-range-slider', 'value')
 )
 def update_graph(date_range):
-    
+
     start_date = pd.to_datetime(date_range[0], unit='ms')
     end_date = pd.to_datetime(date_range[1], unit='ms')
-    
+
     filtered_df = missiles_daily[
         (missiles_daily['Date'] >= start_date) &
         (missiles_daily['Date'] <= end_date)
     ]
-    
+
     option = create_echarts_option(filtered_df)
     return option
+
 
 @app.callback(
     Output('table-container', 'children'),
@@ -175,21 +183,21 @@ def update_graph(date_range):
     Input('date-range-slider', 'value')
 )
 def update_table(date_range):
-   
+
     start_date = pd.to_datetime(date_range[0], unit='ms')
     end_date = pd.to_datetime(date_range[1], unit='ms')
-   
+
     filtered_data = dat_expanded_preprocessed[
         (dat_expanded_preprocessed['Date'] >= start_date) &
         (dat_expanded_preprocessed['Date'] <= end_date)
     ]
     if filtered_data.empty:
-       
+
         return html.Div("No data available for the selected date range."), {'display': 'none'}
     else:
-       
+
         filtered_data['Date'] = filtered_data['Date'].dt.strftime('%Y-%m-%d')
-       
+
         table = dash_table.DataTable(
             data=filtered_data.to_dict('records'),
             columns=[{'name': i, 'id': i} for i in filtered_data.columns],
@@ -199,17 +207,17 @@ def update_table(date_range):
             filter_options={'placeholder_text': 'Search'},
             style_table={
                 'overflowX': 'auto',
-                'border': '1px solid #ccc', 
-                'borderRadius': '5px',      
+                'border': '1px solid #ccc',
+                'borderRadius': '5px',
             },
             style_cell={
                 'textAlign': 'left',
                 'padding': '5px',
-                'backgroundColor': '#f9f9f9', 
+                'backgroundColor': '#f9f9f9',
                 'font-family': 'Optima, sans-serif',
             },
             style_header={
-                'backgroundColor': '#4c3d75', 
+                'backgroundColor': '#4c3d75',
                 'fontWeight': 'bold',
                 'color': 'white',
                 'font-family': 'Optima, sans-serif',
@@ -220,8 +228,9 @@ def update_table(date_range):
                 'font-family': 'Optima, sans-serif',
             }
         )
-    
+
         return table, {'display': 'block', 'border': '1px solid #ccc', 'padding': '10px'}
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
