@@ -8,15 +8,16 @@ import datetime
 
 app = dash.Dash(__name__)
 
-
+# Load the data into Python
 missiles_daily = pd.read_csv('missiles_daily.csv', parse_dates=['Date'])
 dat_expanded_preprocessed = pd.read_csv(
     'dat_expanded_preprocessed.csv', parse_dates=['Date'])
 
-
 missiles_daily['Date'] = pd.to_datetime(missiles_daily['Date'])
 dat_expanded_preprocessed['Date'] = pd.to_datetime(
     dat_expanded_preprocessed['Date'])
+
+# Create date marks for the slider
 
 
 def create_date_marks(dates, num_marks=4):
@@ -44,7 +45,6 @@ app.layout = html.Div([
             ),
         ], style={'border': '1px solid #ccc', 'padding': '10px', 'marginBottom': '20px'}),
 
-
         html.Div([
             dcc.RangeSlider(
                 id='date-range-slider',
@@ -61,14 +61,14 @@ app.layout = html.Div([
             ),
         ], style={'marginBottom': '20px'}),
 
-
         html.H2("Model Details", style={'fontFamily': 'Optima, sans-serif'}),
-
 
         html.Div(id='table-container',
                  style={'display': 'none', 'border': '1px solid #ccc', 'padding': '10px'}),
-    ], style={'maxWidth': '1200px', 'margin': '0 auto'})
+    ], style={'maxWidth': '1200px', 'margin': '0 auto'})  # Ensure layout width is constrained
 ])
+
+# Function to create the chart options for ECharts
 
 
 def create_echarts_option(filtered_df):
@@ -76,53 +76,33 @@ def create_echarts_option(filtered_df):
         'title': {
             'text': 'Daily Tally of Russian Missile Attacks',
             'left': 'center',
-            'textStyle': {
-                'fontFamily': 'Optima, sans-serif'
-            }
+            'textStyle': {'fontFamily': 'Optima, sans-serif'}
         },
         'tooltip': {'trigger': 'axis'},
         'legend': {
             'data': ['Launched', 'Destroyed'],
             'bottom': 0,
-            'textStyle': {
-                'fontFamily': 'Optima, sans-serif'
-            }
+            'textStyle': {'fontFamily': 'Optima, sans-serif'}
         },
         'xAxis': {
             'type': 'time',
             'name': 'Date',
-            'nameTextStyle': {
-                'fontFamily': 'Optima, sans-serif'
-            },
+            'nameTextStyle': {'fontFamily': 'Optima, sans-serif'},
             'axisLabel': {
                 'formatter': '{yyyy}-{MM}-{dd}',
                 'fontFamily': 'Optima, sans-serif'
             },
-            'axisTick': {
-                'alignWithLabel': True
-            },
-            'splitLine': {
-                'show': False
-            },
-
-            'minorTick': {
-                'show': False
-            },
-            'minorSplitLine': {
-                'show': False
-            }
+            'axisTick': {'alignWithLabel': True},
+            'splitLine': {'show': False},
+            'minorTick': {'show': False},
+            'minorSplitLine': {'show': False}
         },
         'yAxis': {
             'type': 'value',
             'name': 'Count',
-            'nameTextStyle': {
-                'fontFamily': 'Optima, sans-serif'
-            },
-            'axisLabel': {
-                'fontFamily': 'Optima, sans-serif'
-            }
+            'nameTextStyle': {'fontFamily': 'Optima, sans-serif'},
+            'axisLabel': {'fontFamily': 'Optima, sans-serif'}
         },
-
         'dataZoom': [
             {
                 'type': 'slider',
@@ -151,12 +131,11 @@ def create_echarts_option(filtered_df):
                 'showSymbol': False,
                 'connectNulls': False
             }
-        ],
-
-        'markLine': {'data': []},
-        'markPoint': {'data': []}
+        ]
     }
     return option
+
+# Python callback for updating the graph
 
 
 @app.callback(
@@ -164,7 +143,6 @@ def create_echarts_option(filtered_df):
     Input('date-range-slider', 'value')
 )
 def update_graph(date_range):
-
     start_date = pd.to_datetime(date_range[0], unit='ms')
     end_date = pd.to_datetime(date_range[1], unit='ms')
 
@@ -176,6 +154,8 @@ def update_graph(date_range):
     option = create_echarts_option(filtered_df)
     return option
 
+# Python callback for updating the table
+
 
 @app.callback(
     Output('table-container', 'children'),
@@ -183,7 +163,6 @@ def update_graph(date_range):
     Input('date-range-slider', 'value')
 )
 def update_table(date_range):
-
     start_date = pd.to_datetime(date_range[0], unit='ms')
     end_date = pd.to_datetime(date_range[1], unit='ms')
 
@@ -191,11 +170,10 @@ def update_table(date_range):
         (dat_expanded_preprocessed['Date'] >= start_date) &
         (dat_expanded_preprocessed['Date'] <= end_date)
     ]
-    if filtered_data.empty:
 
+    if filtered_data.empty:
         return html.Div("No data available for the selected date range."), {'display': 'none'}
     else:
-
         filtered_data['Date'] = filtered_data['Date'].dt.strftime('%Y-%m-%d')
 
         table = dash_table.DataTable(
@@ -205,28 +183,14 @@ def update_table(date_range):
             filter_action='native',
             sort_action='native',
             filter_options={'placeholder_text': 'Search'},
-            style_table={
-                'overflowX': 'auto',
-                'border': '1px solid #ccc',
-                'borderRadius': '5px',
-            },
-            style_cell={
-                'textAlign': 'left',
-                'padding': '5px',
-                'backgroundColor': '#f9f9f9',
-                'font-family': 'Optima, sans-serif',
-            },
-            style_header={
-                'backgroundColor': '#4c3d75',
-                'fontWeight': 'bold',
-                'color': 'white',
-                'font-family': 'Optima, sans-serif',
-            },
-            style_data={
-                'whiteSpace': 'normal',
-                'height': 'auto',
-                'font-family': 'Optima, sans-serif',
-            }
+            style_table={'overflowX': 'auto',
+                         'border': '1px solid #ccc', 'borderRadius': '5px'},
+            style_cell={'textAlign': 'left', 'padding': '5px',
+                        'backgroundColor': '#f9f9f9', 'font-family': 'Optima, sans-serif'},
+            style_header={'backgroundColor': '#4c3d75', 'fontWeight': 'bold',
+                          'color': 'white', 'font-family': 'Optima, sans-serif'},
+            style_data={'whiteSpace': 'normal', 'height': 'auto',
+                        'font-family': 'Optima, sans-serif'}
         )
 
         return table, {'display': 'block', 'border': '1px solid #ccc', 'padding': '10px'}
