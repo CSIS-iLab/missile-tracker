@@ -13,7 +13,6 @@ missiles_daily = pd.read_csv('missiles_daily.csv', parse_dates=['Date'])
 dat_expanded_preprocessed = pd.read_csv(
     'dat_expanded_preprocessed.csv', parse_dates=['Date'])
 
-
 missiles_daily['Date'] = pd.to_datetime(missiles_daily['Date'])
 dat_expanded_preprocessed['Date'] = pd.to_datetime(
     dat_expanded_preprocessed['Date'])
@@ -44,7 +43,6 @@ app.layout = html.Div([
             ),
         ], style={'border': '1px solid #ccc', 'padding': '10px', 'marginBottom': '20px'}),
 
-
         html.Div([
             dcc.RangeSlider(
                 id='date-range-slider',
@@ -56,18 +54,44 @@ app.layout = html.Div([
                 ],
                 marks=date_marks,
                 step=None,
-                tooltip={'always_visible': False,
-                         'placement': 'bottom'}  # Hide tooltips
+                tooltip={'always_visible': False, 'placement': 'bottom'}
             ),
         ], style={'marginBottom': '20px'}),
 
-
-        html.H2("Model Details", style={'fontFamily': 'Optima, sans-serif'}),
-
+        # Center the 'Model Details' title
+        html.H2("Model Details", style={
+                'fontFamily': 'Optima, sans-serif', 'textAlign': 'center'}),
 
         html.Div(id='table-container',
                  style={'display': 'none', 'border': '1px solid #ccc', 'padding': '10px'}),
-    ], style={'maxWidth': '1200px', 'margin': '0 auto'})
+
+        # Updated 'Using This Dashboard' section
+        html.Div([
+            html.H3("Using This Dashboard", style={
+                'fontFamily': 'Optima, sans-serif',
+                'textAlign': 'center',
+                'marginTop': '40px'
+            }),
+            html.Div([
+                html.P(
+                    "This interactive dashboard explores the daily and cumulative trends of Russian missile attacks, including the number of missiles launched, types of missiles used, and the success of Ukrainian intercepts. Use the date range slider below the chart to select a specific time period. The chart will update to display the number of missiles launched and destroyed during the selected date range. Hover over the bars in the chart to view detailed information for each date. In the 'Model Details' section below, a table provides additional data on the missile attacks. You can search for a specific date using the search box in the 'Date' column.",
+                    style={
+                        'textAlign': 'justify',
+                        'margin': '0 auto',
+                        'padding': '10px',
+                        'fontFamily': 'Optima, sans-serif'
+                    }
+                ),
+            ], style={
+                'border': '1px solid #ccc',
+                'padding': '10px',
+                'maxWidth': '800px',
+                'margin': '0 auto'
+            }),
+        ], style={'padding': '10px', 'maxWidth': '1200px', 'margin': '0 auto'})
+
+    ])
+
 ])
 
 
@@ -88,6 +112,12 @@ def create_echarts_option(filtered_df):
                 'fontFamily': 'Optima, sans-serif'
             }
         },
+        'grid': {
+            'left': '10%',
+            'right': '10%',
+            'bottom': '20%',
+            'containLabel': True
+        },
         'xAxis': {
             'type': 'time',
             'name': 'Date',
@@ -96,7 +126,10 @@ def create_echarts_option(filtered_df):
             },
             'axisLabel': {
                 'formatter': '{yyyy}-{MM}-{dd}',
-                'fontFamily': 'Optima, sans-serif'
+                'fontFamily': 'Optima, sans-serif',
+                'rotate': 45,
+                'hideOverlap': True,
+                'interval': 'auto'
             },
             'axisTick': {
                 'alignWithLabel': True
@@ -104,7 +137,6 @@ def create_echarts_option(filtered_df):
             'splitLine': {
                 'show': False
             },
-
             'minorTick': {
                 'show': False
             },
@@ -122,7 +154,6 @@ def create_echarts_option(filtered_df):
                 'fontFamily': 'Optima, sans-serif'
             }
         },
-
         'dataZoom': [
             {
                 'type': 'slider',
@@ -152,7 +183,6 @@ def create_echarts_option(filtered_df):
                 'connectNulls': False
             }
         ],
-
         'markLine': {'data': []},
         'markPoint': {'data': []}
     }
@@ -164,7 +194,6 @@ def create_echarts_option(filtered_df):
     Input('date-range-slider', 'value')
 )
 def update_graph(date_range):
-
     start_date = pd.to_datetime(date_range[0], unit='ms')
     end_date = pd.to_datetime(date_range[1], unit='ms')
 
@@ -183,7 +212,6 @@ def update_graph(date_range):
     Input('date-range-slider', 'value')
 )
 def update_table(date_range):
-
     start_date = pd.to_datetime(date_range[0], unit='ms')
     end_date = pd.to_datetime(date_range[1], unit='ms')
 
@@ -192,19 +220,28 @@ def update_table(date_range):
         (dat_expanded_preprocessed['Date'] <= end_date)
     ]
     if filtered_data.empty:
-
         return html.Div("No data available for the selected date range."), {'display': 'none'}
     else:
-
         filtered_data['Date'] = filtered_data['Date'].dt.strftime('%Y-%m-%d')
+
+        # Define columns with placeholder text only for the 'Date' column
+        columns = []
+        for i in filtered_data.columns:
+            if i == 'Date':
+                columns.append({
+                    'name': i,
+                    'id': i,
+                    'filter_options': {'placeholder_text': 'Search for a specific date'}
+                })
+            else:
+                columns.append({'name': i, 'id': i})
 
         table = dash_table.DataTable(
             data=filtered_data.to_dict('records'),
-            columns=[{'name': i, 'id': i} for i in filtered_data.columns],
+            columns=columns,
             page_size=10,
             filter_action='native',
             sort_action='native',
-            filter_options={'placeholder_text': 'Search'},
             style_table={
                 'overflowX': 'auto',
                 'border': '1px solid #ccc',
@@ -214,18 +251,25 @@ def update_table(date_range):
                 'textAlign': 'left',
                 'padding': '5px',
                 'backgroundColor': '#f9f9f9',
-                'font-family': 'Optima, sans-serif',
+                'fontFamily': 'Optima, sans-serif',
             },
             style_header={
                 'backgroundColor': '#4c3d75',
                 'fontWeight': 'bold',
                 'color': 'white',
-                'font-family': 'Optima, sans-serif',
+                'fontFamily': 'Optima, sans-serif',
             },
             style_data={
                 'whiteSpace': 'normal',
                 'height': 'auto',
-                'font-family': 'Optima, sans-serif',
+                'fontFamily': 'Optima, sans-serif',
+            },
+            # Style the filter boxes to make them more obvious
+            style_filter={
+                'backgroundColor': '#e6e6e6',
+                'fontFamily': 'Optima, sans-serif',
+                'color': '#333',
+                'border': '1px solid #ccc',
             }
         )
 
