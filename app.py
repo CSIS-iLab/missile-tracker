@@ -97,6 +97,7 @@ app.layout = html.Div([
 
 def create_echarts_option(filtered_df):
     option = {
+        'useUTC': True,
         'title': {
             'text': 'Daily Tally of Russian Missile Attacks',
             'left': 'center',
