@@ -5,13 +5,36 @@ from dash.dependencies import Input, Output
 from dash_echarts import DashECharts
 import dash_table
 import datetime
+import time
+import threading
 
 app = dash.Dash(__name__)
-server = app.server
 
-missiles_daily = pd.read_csv('missiles_daily.csv', parse_dates=['Date'])
-dat_expanded_preprocessed = pd.read_csv(
-    'dat_expanded_preprocessed.csv', parse_dates=['Date'])
+
+def read_gsheet(sheet_id, sheet_name):
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+    return pd.read_csv(url, parse_dates=['Date'])
+
+
+SHEET_ID = "1kb1nL2IgkOXmnSwkAoqnqVq05lXt0U0P1yRIvJk_0j4"
+# Replace "Sheet1" if needed
+missiles_daily = read_gsheet(SHEET_ID, "dat_expanded_preprocessed")
+# Change if you have a different sheet for this
+dat_expanded_preprocessed = read_gsheet(SHEET_ID, "missiles_daily")
+
+
+def refresh_data():
+    global missiles_daily, dat_expanded_preprocessed
+    while True:
+        print("Refreshing data from Google Sheets...")
+        missiles_daily = read_gsheet(SHEET_ID, "missiles_daily")
+        dat_expanded_preprocessed = read_gsheet(
+            SHEET_ID, "dat_expanded_preprocessed")
+        time.sleep(86400)  # Refresh every 24 hours (adjust as needed)
+
+
+# Start background thread
+threading.Thread(target=refresh_data, daemon=True).start()
 
 missiles_daily['Date'] = pd.to_datetime(missiles_daily['Date'])
 dat_expanded_preprocessed['Date'] = pd.to_datetime(
@@ -74,7 +97,7 @@ app.layout = html.Div([
             }),
             html.Div([
                 html.P(
-                    "This interactive dashboard explores the daily and cumulative trends of Russian missile attacks, including the number of missiles launched, types of missiles used, and the success of Ukrainian intercepts. Use the date range slider below the chart to select a specific time period. The chart will update to display the number of missiles launched and destroyed during the selected date range. Hover over the bars in the chart to view detailed information for each date. In the 'Model Details' section below, a table provides additional data on the missile attacks. You can search for a specific date using the search box in the 'Date' column.",
+                    "This interactive dashboard explores the daily and cumulative trends of Russian missile attacks, including the number of missiles (UAVs included) launched, types of missiles used, and the success of Ukrainian intercepts. Use the date range slider below the chart to select a specific time period. The chart will update to display the number of missiles launched and destroyed during the selected date range. Hover over the bars in the chart to view detailed information for each date. In the 'Model Details' section below, a table provides additional data on the missile attacks. You can search for a specific date using the search box in the 'Date' column. Note: The term 'destroyed' includes missiles that were intercepted plus that went missing due to electronic warfare tools.",
                     style={
                         'textAlign': 'justify',
                         'margin': '0 auto',
