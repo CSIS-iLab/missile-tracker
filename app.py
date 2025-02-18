@@ -17,9 +17,7 @@ def read_gsheet(sheet_id, sheet_name):
 
 
 SHEET_ID = "1kb1nL2IgkOXmnSwkAoqnqVq05lXt0U0P1yRIvJk_0j4"
-# Replace "Sheet1" if needed
 missiles_daily = read_gsheet(SHEET_ID, "dat_expanded_preprocessed")
-# Change if you have a different sheet for this
 dat_expanded_preprocessed = read_gsheet(SHEET_ID, "missiles_daily")
 
 
