@@ -9,6 +9,7 @@ import time
 import threading
 
 app = dash.Dash(__name__)
+server = app.server
 
 
 def read_gsheet(sheet_id, sheet_name):
