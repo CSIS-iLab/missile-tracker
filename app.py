@@ -29,7 +29,7 @@ def refresh_data():
         missiles_daily = read_gsheet(SHEET_ID, "missiles_daily")
         dat_expanded_preprocessed = read_gsheet(
             SHEET_ID, "dat_expanded_preprocessed")
-        time.sleep(86400)  # Refresh every 24 hours (adjust as needed)
+        time.sleep(43200)  # Refresh every 12 hours (adjust as needed)
 
 
 # Start background thread
